@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>
+    <title>bgamari.github.com - Installing Amber 11 and AmberTools 1.5 on Ubuntu 11.04</title>
+    <link rel="stylesheet" type="text/css" href="../css/default.css"></link>
+  </head>
+  <body>
+    <div id="content">
+      <div id="sidebar">
+        <nav>
+          <h1>Navigation</h1>
+          <ul>
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="../posts.html">Notes</a></li>
+            <!--<li><a href="/research-agenda.html">Research agenda</a></li>
+            <li><a href="/publications.html">Publications</a></li>
+            <li><a href="/past-research.html">Past research</a></li>
+            <li><a href="/media/cv.pdf">Curriculum Vitae</a></li>-->
+          </ul>
+<!--          <h1>Related Links</h1>
+          <ul>
+            <li><a href="http://goldnerlab.physics.umass.edu/wiki/">Research group</a></li>
+            <li><a href="http://www.github.com/bgamari">Github</a></li>
+          </ul>
+        </nav>-->
+      </div>
+
+      <section id="main">
+      <h1 id="installing-amber-11-and-ambertools-1.5-on-ubuntu-11.04">Installing Amber 11 and AmberTools 1.5 on Ubuntu 11.04</h1>
+<p>Below I’ll detail my procedure for installing Amber on an Ubuntu Natty machine in the lab. We will build serial, MPI-enabled (using OpenMPI), and CUDA-enabled binaries. In addition to this guide, there are a variety of resources on installing Amber available online including,</p>
+<ul>
+<li><a href="http://ambermd.org/ubuntu.html">Ambermd.org</a></li>
+<li><a href="http://www.somewhereville.com/?p=345">Somewhereville.com (serial build of Amber10 targetting Ubuntu 8.10)</a></li>
+<li><a href="http://www.somewhereville.com/?p=437">Somewhereville.com (parallel build of Amber10 targetting Ubuntu 8.10)</a></li>
+</ul>
+<h2 id="preparation">Preparation</h2>
+<p>First, we’ll need a variety of Ubuntu packages,</p>
+<pre><code>    $ sudo apt-get install build-essential gfortran libbz2-dev libz-dev xorg-dev</code></pre>
+<p>Unfortunately, Natty’s libXt packaging places libXt and friends <a href="http://www.quantumdiaries.org/2011/04/29/new-ubuntu-linux-11-04/">where Amber can’t find them</a>. We’ll work around this with some symlinks,</p>
+<pre><code>    $ cd /usr/lib
+    $ sudo ln -s x86_64-linux-gnu/libX11.so .
+    $ sudo ln -s x86_64-linux-gnu/libXt.so .
+    $ sudo ln -s x86_64-linux-gnu/libXt.a .</code></pre>
+<p>I’ll be placing my Amber tree in <code>~/amber</code>,</p>
+<pre><code>    $ export AMBERHOME=~/amber/amber11
+    $ cd $AMBERHOME</code></pre>
+<p>In addition to the Amber (<code>Amber11.tar.bz2</code>) and AmberTools (<code>AmberTools-1.5.tar.bz2</code>) tarballs, we’ll want the latest bugfixes (including bugfix 17, which supposedly <a href="http://ambermd.org/news.html#GPU_v2.2">doubles PME performance on GPUs</a>)</p>
+<pre><code>    $ wget -N http://ambermd.org/bugfixes/11.0/bugfix.1to17.tar.bz2
+    $ wget -N http://ambermd.org/bugfixes/11.0/apply_bugfix.x
+    $ chmod 700 apply_bugfix.x
+    $ wget -N http://ambermd.org/bugfixes/AmberTools/1.5/bugfix.all</code></pre>
+<p>Let’s start by unpacking the tarballs and applying the patches,</p>
+<pre><code>    $ tar -jxf Amber11.tar.bz2
+    $ tar -jxf AmberTools-1.5.tar.bz2
+
+    $ ./apply_bugfix.x bugfix.1to17.tar.bz2
+    $ cd amber11
+    $ patch -p0 -N &lt; ../bugfix.all</code></pre>
+<h2 id="serial-build">Serial build</h2>
+<p>Before building any of the parallel binaries we’ll start with a serial configuration. We start by building and install AmberTools to <code>$AMBERHOME</code>,</p>
+<pre><code>    $ cd $AMBERHOME/AmberTools/src
+    $ ./configure gnu
+    $ make serial
+    $ make install
+    $ cd ../test
+    $ make</code></pre>
+<p>Amber’s default configuration uses the <code>-mtune=generic</code> gcc flag, which causes the compiler to emit code that will run on pretty much any somewhat modern processor. We know exactly what silicon we are targetting, so those seeking to squeeze every bit of performance from their machine could change this to <code>-march=native</code>. This causes the compiler to emit code optimized for the current platform. The actual performance benefit of this has not been tested.</p>
+<pre><code>    $ sed -i &quot;s/-mtune=generic/-march=native/&quot; $AMBERHOME/src/config.h $AMBERHOME/AmberTools/src/config.h</code></pre>
+<p>Before we can build Amber, we need to patch it since we are using AmberTools 1.5,</p>
+<pre><code>    $ cd $AMBERHOME
+    $ ./AT15_Amber11.py</code></pre>
+<p>Next we’ll build serial Amber itself,</p>
+<pre><code>    $ cd $AMBERHOME/src
+    $ make serial
+    $ make install</code></pre>
+<h2 id="openmpi-build">OpenMPI build</h2>
+<p>Natty seems to have the latest stable release of OpenMPI (1.4.3), so we will use the distribution’s packages for this,</p>
+<pre><code>    $ sudo apt-get install libopenmpi1.3 libopenmpi-dev </code></pre>
+<p>We now need to configure Amber. For some reason, this is done with AmberTools’ <code>configure</code></p>
+<pre><code>    $ cd $AMBERHOME/AmberTools/src
+    $ ./configure -mpi gnu</code></pre>
+<p>Finally, we build our MPI-enabled Amber (not forgetting to patch it for AmberTools 1.5),</p>
+<pre><code>    $ cd $AMBERHOME
+    $ ./AT15_Amber11.py
+    $ cd src
+    $ make clean
+    $ make parallel</code></pre>
+<p>Testing,</p>
+<pre><code>    $ cd $AMBERHOME/test
+    $ export DO_PARALLEL=&quot;mpirun -np 4&quot;
+    $ make test.parallel</code></pre>
+<h2 id="cuda-build">CUDA build</h2>
+<p>We’ll be using the default hybrid precision CUDA code. First we clean the OpenMPI build and configure for a CUDA build,</p>
+<pre><code>    $ cd $AMBERHOME/AmberTools/src
+    $ make clean
+    $ export CUDA_HOME=/usr/local/cuda
+    $ ./configure -cuda gnu</code></pre>
+<p>The CUDA 4.0 toolkit used in this case did not support of Natty’s default gcc 4.5 compiler. We work around this by telling <code>nvcc</code> to use gcc 4.4. Unfortunately, <code>nvcc</code> can only be told the path to the directory containing the compiler binaries. Thus, we create a directory for the gcc-4.4 executables,</p>
+<pre><code>    $ sudo apt-get install gcc-4.4 g++-4.4
+    $ sudo mkdir /usr/local/bin/gcc4.4
+    $ sudo ln -s /usr/bin/gcc-4.4 /usr/local/bin/gcc4.4/gcc
+    $ sudo ln -s /usr/bin/g++-4.4 /usr/local/bin/gcc4.4/g++</code></pre>
+<p>We then add the option <code>--compiler-bindir /usr/local/bin/gcc4.4</code> to the definition of <code>NVCC</code> in both <code>$AMBERHOME/src/config.h</code> and <code>$AMBERHOME/AmberTools/src/config.h</code>. Finally we build Amber,</p>
+<pre><code>    $ cd $AMBERHOME
+    $ ./AT15_Amber11.py
+    $ cd src
+    $ make clean
+    $ make cuda</code></pre>
+<p>And test,</p>
+<pre><code>    $ cd $AMBERHOME/test
+    $ ./test_amber_cuda.sh</code></pre>
+<p>You’re done! You will find your new build in <code>$AMBERHOME/bin</code>.</p>
+<pre><code>    $ export PATH=$PATH:$AMBERHOME/bin</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="debug-symbols">Debug symbols</h3>
+<p>To compile with debug symbols, simply add <code>-g</code> to <code>$AMBERHOME/AmberTools/src/config.h</code>. Additionally, disabling optimization (<code>-O0</code>) can help in debugging many classes of bugs. <a href="http://archive.ambermd.org/201005/0373.html"><code class="url">http://archive.ambermd.org/201005/0373.html</code></a></p>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>These numbers were taken on our compute server:</p>
+<ul>
+<li>ASUS Z8NA-D6(C) motherboard</li>
+<li>Dual Intel Xeon E5520</li>
+<li>3 2GB DDR3 @ 1066MHz</li>
+<li>3 4GB DDR3 @ 1333MHz</li>
+</ul>
+<p>These benchmarks are taken from the <a href="http://ambermd.org/amber11_bench_files/Amber11_Benchmark_Suite.tar.gz">Amber11 Benchmark Suite</a>.</p>
+<h3 id="serial-amber">Serial AMBER</h3>
+<ul>
+<li><code>-mtune=generic</code>:
+<ul>
+<li><code>GB/TRPCage</code>:</li>
+</ul></li>
+<li><code>-march=native</code>:
+<ul>
+<li><code>GB/TRPCage</code>:</li>
+</ul></li>
+</ul>
+<h3 id="parallel-amber">Parallel AMBER</h3>
+<p>+</p>
+      </section>
+    </div>
+
+    <footer id="footer">
+      <span>Generated by <a href="http://jaspervdj.be/hakyll/index.html">Hakyll</a>.</span>
+    </footer>
+  </body>
+</html>
+

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>
+    <title>bgamari.github.com - Building BeagleDAQ and Tracker environment</title>
+    <link rel="stylesheet" type="text/css" href="../css/default.css"></link>
+  </head>
+  <body>
+    <div id="content">
+      <div id="sidebar">
+        <nav>
+          <h1>Navigation</h1>
+          <ul>
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="../posts.html">Notes</a></li>
+            <!--<li><a href="/research-agenda.html">Research agenda</a></li>
+            <li><a href="/publications.html">Publications</a></li>
+            <li><a href="/past-research.html">Past research</a></li>
+            <li><a href="/media/cv.pdf">Curriculum Vitae</a></li>-->
+          </ul>
+<!--          <h1>Related Links</h1>
+          <ul>
+            <li><a href="http://goldnerlab.physics.umass.edu/wiki/">Research group</a></li>
+            <li><a href="http://www.github.com/bgamari">Github</a></li>
+          </ul>
+        </nav>-->
+      </div>
+
+      <section id="main">
+      <h1 id="building-beagledaq-and-tracker-environment">Building BeagleDAQ and Tracker environment</h1>
+<h2 id="beagledaq">BeagleDAQ</h2>
+<h3 id="introduction">Introduction</h3>
+<p>The BeagleDAQ system is based around the <a href="http://www.beagleboard.org/">BeagleBoard</a> single-board computer. This device is a small computer with an ARM processor, similar to the one likely in your smart phone. Like most computers, the BeagleBoard needs an operating system to be useful. This is almost always Linux. The operating system is stored on a MicroSD card which is inserted in a slot on the side of the board.</p>
+<p>While any Linux distribution can be used on the BeagleBoard, I prefer to use <a href="http://www.linaro.org/">Linaro’s</a> Ubuntu distribution due to its ease of use, excellent packaging and good documentation.</p>
+<h3 id="linaro-image">Linaro Image</h3>
+<p>While there is a fair bit of documentation in the Linaro <a href="http://wiki.linaro.org/">Wiki</a> (e.g. <a href="https://wiki.linaro.org/Platform/DevPlatform/Ubuntu/ImageInstallation"><code class="url">https://wiki.linaro.org/Platform/DevPlatform/Ubuntu/ImageInstallation</code></a>), I’ll briefly outline the process here as well. The image creation process should be conducted on an Ubuntu machine.</p>
+<p>First, let’s install the <code>linaro-image-tools</code> package, which we’ll need later in the process,</p>
+<pre><code>    $ sudo add-apt-repository ppa:linaro-maintainers/tools
+    $ sudo apt-get update
+    $ sudo apt-get install linaro-image-tools</code></pre>
+<p>A Linaro image consists of two components,</p>
+<ul>
+<li>A hardware pack providing details about the platform (e.g. BeagleBoard)</li>
+<li>The Linaro distribution tarball</li>
+</ul>
+<p>Both of these components can be downloaded from the Linaro <a href="http://releases.linaro.org/platform/">releases</a> server. There are several flavors of Linaro’s Ubuntu distribution; I generally choose <code>developer</code> (e.g. <a href="http://releases.linaro.org/platform/linaro-n/developer/latest/"><code class="url">http://releases.linaro.org/platform/linaro-n/developer/latest/</code></a>). The names of these files should look something like the following,</p>
+<ul>
+<li>Hardware pack: <code>hwpack_linaro-omap3_20110729-1_armel_supported.tar.gz</code></li>
+<li>Distribution: <code>developer-n-tar-20110728-1.tar.gz</code></li>
+</ul>
+<p>To build the image, one must have the target SD card inserted into the SD card reader. This device will generally be known as <code>/dev/sdb</code>, although the last letter could change depending upon the machine. It is critical that you double-check the name of the SD card as otherwise you could easily overwrite data on the machine you are working on. To build the image (assuming the files listed above are used),</p>
+<pre><code>    $ sudo linaro-media-create --rootfs ext3 --mmc /dev/sdb --binary developer-n-tar-20110728-1.tar.gz --hwpack hwpack_linaro-omap3_20110729-1_armel_supported.tar.gz --dev beagle</code></pre>
+<h3 id="beagledaq-kernel">BeagleDAQ kernel</h3>
+<p>The BeagleDAQ hardware requires a few modifications to the Linux kernel to work properly.</p>
+<p>TODO</p>
+<h2 id="tracker">Tracker</h2>
+<p>The particle tracker (<code>pytracker</code>) depends upon a low-level library, <code>libbeagledaq</code>, to communicate with the BeagleDAQ hardware. First, we install this and its dependencies,</p>
+<pre><code>    $ sudo apt-get install libboost-dev
+    $ cd
+    $ git clone git@goldnerlab:libbeagledaq
+    $ cd libbeagledaq
+    $ make
+    $ sudo make install</code></pre>
+<p>Now we install <code>pytracker</code>,</p>
+<pre><code>    $ sudo apt-get install python-dev python-scipy
+    $ cd
+    $ git clone git@goldnerlab:pytracker
+    $ cd pytracker
+    $ ./setup.py build</code></pre>
+      </section>
+    </div>
+
+    <footer id="footer">
+      <span>Generated by <a href="http://jaspervdj.be/hakyll/index.html">Hakyll</a>.</span>
+    </footer>
+  </body>
+</html>
+

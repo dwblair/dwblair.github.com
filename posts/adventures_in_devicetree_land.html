@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>
+    <title>bgamari.github.com - Adventures in devicetree land</title>
+    <link rel="stylesheet" type="text/css" href="../css/default.css"></link>
+  </head>
+  <body>
+    <div id="content">
+      <div id="sidebar">
+        <nav>
+          <h1>Navigation</h1>
+          <ul>
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="../posts.html">Notes</a></li>
+            <!--<li><a href="/research-agenda.html">Research agenda</a></li>
+            <li><a href="/publications.html">Publications</a></li>
+            <li><a href="/past-research.html">Past research</a></li>
+            <li><a href="/media/cv.pdf">Curriculum Vitae</a></li>-->
+          </ul>
+<!--          <h1>Related Links</h1>
+          <ul>
+            <li><a href="http://goldnerlab.physics.umass.edu/wiki/">Research group</a></li>
+            <li><a href="http://www.github.com/bgamari">Github</a></li>
+          </ul>
+        </nav>-->
+      </div>
+
+      <section id="main">
+      <h1 id="adventures-in-devicetree-land">Adventures in devicetree land</h1>
+<p>Building kernel with following script,</p>
+<pre><code>    #!/bin/bash
+
+    set -o errexit
+
+    makeopts=&quot;ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- $MAKEOPTS&quot;
+
+    make $makeopts all
+    make $makeopts uImage
+    make $makeopts modules
+    cp arch/arm/boot/uImage /media/boot/uImage
+    sudo make $makeopts modules_install MOD_INSTALL_PATH=/media/rootfs
+    echo &quot;Syncing...&quot;
+    sync
+    echo &quot;Done.&quot;
+    exit 0</code></pre>
+<p>Beagleboard thinks it only has 16M of memory with both v3.0 and v2.6.39 kernels,</p>
+<pre><code>    [    0.000000] Linux version 2.6.39 (ben@ben-laptop) (gcc version 4.5.2 (Ubuntu/Linaro 4.5.2-8ubuntu3) ) #3 SMP Thu Aug 18 11:18:57 EDT 2011
+    [    0.000000] CPU: ARMv7 Processor [413fc082] revision 2 (ARMv7), cr=10c53c7f
+    [    0.000000] CPU: VIPT nonaliasing data cache, VIPT aliasing instruction cache
+    [    0.000000] Machine: OMAP3 Beagle Board
+    .
+    .
+    .
+    [    0.000000] Inode-cache hash table entries: 1024 (order: 0, 4096 bytes)
+    [    0.000000] Memory: 16MB = 16MB total
+    [    0.000000] Memory: 5116k/5116k available, 11268k reserved, 0K highmem
+    [    0.000000] Virtual kernel memory layout:
+    [    0.000000]     vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+    [    0.000000]     fixmap  : 0xfff00000 - 0xfffe0000   ( 896 kB)
+    [    0.000000]     DMA     : 0xffc00000 - 0xffe00000   (   2 MB)
+    [    0.000000]     vmalloc : 0xc1800000 - 0xf8000000   ( 872 MB)
+    [    0.000000]     lowmem  : 0xc0000000 - 0xc1000000   (  16 MB)
+    [    0.000000]     modules : 0xbf000000 - 0xc0000000   (  16 MB)
+    [    0.000000]       .init : 0xc0008000 - 0xc0053000   ( 300 kB)
+    [    0.000000]       .text : 0xc0053000 - 0xc060ad50   (5856 kB)
+    [    0.000000]       .data : 0xc060c000 - 0xc068faa8   ( 527 kB)</code></pre>
+<p>Resulting in OOM pretty early in boot.<br />Yet bootloader realizes correct amount,</p>
+<pre><code>    OMAP3630/3730-GP ES2.0, CPU-OPP2, L3-165MHz, Max CPU Clock 1 Ghz
+    OMAP3 Beagle board + LPDDR/NAND
+    I2C:   ready
+    DRAM:  512 MiB
+    NAND:  0 MiB
+    MMC:   OMAP SD/MMC: 0</code></pre>
+<p>Passing <code>mem=512M</code> to kernel doesn’t help.</p>
+<p>Perhaps problem is in devicetree. Downloaded <code>dtc</code> from <code>git://git.jdl.com/software/dtc.git</code> since version in kernel tree (scripts/dtc) doesn’t build. Decoded devicetree,</p>
+<pre><code>   [1125 ben@ben-laptop dtc(master)] $ ./dtc -I dtb -O dts /media/boot/board.dtb 
+   DTC: dtb-&gt;dts  on file &quot;/media/boot/board.dtb&quot;
+    /dts-v1/;
+
+    / {
+            #address-cells = &lt;0x1&gt;;
+            #size-cells = &lt;0x1&gt;;
+            model = &quot;TI OMAP3 BeagleBoard&quot;;
+            compatible = &quot;ti,omap3-beagle&quot;;
+
+            chosen {
+            };
+
+            aliases {
+            };
+
+            memory {
+                    device_type = &quot;memory&quot;;
+                    reg = &lt;0x0 0x0&gt;;
+            };
+    };</code></pre>
+<p>Hmm, not sure what this means. Where is actual devicetree source for the beagleboard? Googling turns up many recent mentions <a href="https://patchwork.kernel.org/patch/932472/"><code class="url">https://patchwork.kernel.org/patch/932472/</code></a> of arch/arm/boot/dts in kernel tree, but this does not exist in v2.6.39 nor v3.0. It seems like the devicetree branch of a <a href="http://git.secretlab.ca/?p=linux-2.6.git;a=tree;f=arch/arm/boot/dts;h=714ec4bce2c5ff54a0873a67977758c1efd91a97;hb=refs/heads/devicetree/arm">random repository</a> has this directory with an omap3-beagle.dts. It includes <code>skeleton.dtsi</code> which claims that the bootloader will populate the memory node,</p>
+<pre><code>    /*
+     * Skeleton device tree; the bare minimum needed to boot; just include and
+     * add a compatible value.  The bootloader will typically populate the memory
+     * node.
+     */
+
+    / {
+            #address-cells = &lt;1&gt;;
+            #size-cells = &lt;1&gt;;
+            chosen { };
+            aliases { };
+            memory { device_type = &quot;memory&quot;; reg = &lt;0 0&gt;; };
+    };</code></pre>
+<p>Perhaps I built a kernel without devicetree support. Judging by the Linaro devicetree HOWTO(https://wiki.linaro.org/Resources/HowTo/KernelDeviceTree) v2.6.39 doesn’t support devicetrees (<code>CONFIG_USE_OF</code> doesn’t exist). Checkout v3.0. Ahh, I saved my original v3.0 .config and indeed CONFIG_USE_OF isn’t set. Damn. I wonder how the bootloader passed the memory amount to the kernel prior to devicetrees. Apparently this mechanism doesn’t work if the bootloader is configured to use devicetrees.</p>
+<p>After enabling <code>CONFIG_USE_OF</code> the machine hangs after “Uncompressing Linux… done, booting the kernel.” Bah.</p>
+<p>Ahhh, after chatting with landley in Freenode’s <code>#edev</code> I realized that <code>CONFIG_EARLY_PRINTK</code> isn’t enabled. It’s hidden behind <code>CONFIG_LL_DEBUG</code> in the Kernel Hacking category.</p>
+<p>Bingo! I have an error message,</p>
+<pre><code>    Uncompressing Linux... done, booting the kernel.
+
+    Error: unrecognized/unsupported device tree compatible list:
+    [ 'ti,omap3-beagle' ]
+
+    Available machine support:
+
+    ID (hex)	NAME
+    000001c4	Generic OMAP24xx
+    000001fe	OMAP2420 H4 board
+    00000384	OMAP2430 sdp2430 board
+    00000397	OMAP24xx Apollon
+    0000060a	OMAP3 Beagle Board
+    0000091a	OMAP3 Devkit8000
+    00000667	OMAP LDP board
+    000006ed	OMAP Logic 3530 LV SOM board
+    00000882	Logic OMAP3 Torpedo board
+    00000706	Gumstix Overo
+    000005ff	OMAP3 EVM
+    000006e1	Pandora Handheld Console
+    00000472	OMAP3430 3430SDP board
+    000006bf	Nokia N810 WiMAX
+    0000060c	Nokia N810
+    000004f7	Nokia N800
+    00000c94	Nokia RM-680 board
+    000007a3	Nokia RX-51 board
+    000009a0	OMAP Zoom3 board
+    000007af	OMAP Zoom2 board
+    000009a1	OMAP 3630SDP board
+    00000925	Compulab CM-T35
+    00000abe	Compulab CM-T3517
+    00000a9d	IGEP OMAP3 module
+    00000928	IGEP v2 board
+    00000959	OMAP3 touchbook Board
+    00000870	OMAP4430 4430SDP board
+    00000ae7	OMAP4 Panda board
+    00000898	OMAP3517/AM3517 EVM
+    00000aa2	OMAP3 STALKER
+    00000af0	ti8168evm
+
+    Please check your kernel config and/or bootloader.</code></pre>
+<p>Hmm, now what does that mean?</p>
+<p>It seems that the <code>machine_desc</code> (defined in the board file) should provide a <code>dt_compat</code> list which defines the devicetree compatibility tags which that board file can boot. This isn’t defined in v3.0’s <code>board-omap3beagle.c</code>. Looking at the Linaro tree it appears these were added in 9d51c816. Cherry-picked.</p>
+<p>It Works!</p>
+      </section>
+    </div>
+
+    <footer id="footer">
+      <span>Generated by <a href="http://jaspervdj.be/hakyll/index.html">Hakyll</a>.</span>
+    </footer>
+  </body>
+</html>
+

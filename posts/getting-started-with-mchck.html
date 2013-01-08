@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>
+    <title>bgamari.github.com - Getting started with mchck</title>
+    <link rel="stylesheet" type="text/css" href="../css/default.css"></link>
+  </head>
+  <body>
+    <div id="content">
+      <div id="sidebar">
+        <nav>
+          <h1>Navigation</h1>
+          <ul>
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="../posts.html">Notes</a></li>
+            <!--<li><a href="/research-agenda.html">Research agenda</a></li>
+            <li><a href="/publications.html">Publications</a></li>
+            <li><a href="/past-research.html">Past research</a></li>
+            <li><a href="/media/cv.pdf">Curriculum Vitae</a></li>-->
+          </ul>
+<!--          <h1>Related Links</h1>
+          <ul>
+            <li><a href="http://goldnerlab.physics.umass.edu/wiki/">Research group</a></li>
+            <li><a href="http://www.github.com/bgamari">Github</a></li>
+          </ul>
+        </nav>-->
+      </div>
+
+      <section id="main">
+      <h1 id="getting-started-with-mchck">Getting started with mchck</h1>
+<p>The <a href="http://www.mchck.org/">mchck</a> is a small microcontroller development board based around the ARM Cortex M3 intended to be a low-cost (~$5) alternative to the ubiquitous <a href="http://www.arduino.cc/">Arduino</a>.</p>
+<p>While the design is currently under development, things are quickly stabilizing. Here I describe my experiences sourcing, building, and developing for the mchck.</p>
+<h2 id="parts">Parts</h2>
+<p>I used Seeed Studio’s [Fusion PCB] service to produce the boards. This works quite well as the mchck is nearly exactly half of the area of the smallest board service (5cm x 5cm). Because Seeed allows boards to be panelized, I tiled two boards in my Gerbers, almost perfectly filling the allotted area. While the mchck has contacts intended for use as a USB connector, having the board trimmed to this size would have precluded the use of Seeed and so I instead decided to use a mini-USB B connector.</p>
+<p>I’ve found that Future Electronics has very competitive prices but often do not offer many parts (namely passive components). For this reason, I sourced parts from both suppliers. Below is the bill-of-materials. While the cost is certainly above the $5 target, this is to be expected from such a low-volume run.</p>
+<pre><code> Price    Qty      Description                           Vendor Part No
+ =========================================================================
+ $0.26    1        3.3V LDO regulator                    FE     MIC5205-3.3YM5 TR
+ $0.42    1        20V Schottky diode                    DK     641-1285-1-ND	
+ $2.20    1        STM32L151 microcontroller (LQFP48)    FE     STM32L151C8T6 
+ $1.12    1        8MB serial FLASH                      FE     SST25VF080B-50-4I-S2AF
+ $0.27    1        8MHz resonator                        FE     CSTCE8M00G55-R0
+ $0.13    1        10uH inductor (0603)                  DK     445-3166-1-ND	
+ $0.01    6        100nF ceramic capacitor (0603)        DK     490-1532-1-ND
+ $0.28    1        2.2uF ceramic capacitor (0603)        DK     587-1263-1-ND	
+ $0.31    1        470pF ceramic capacitor (0603)        DK     445-1307-1-ND	
+ $0.33    1        Green LED (0603)                      DK     160-1446-1-ND
+ $1.51    1        Mini USB B connector                  DK     A31727CT-ND	
+ $0.25    1        SPST SMT tactile switch               FE     KMR221GLFS
+ $1.10    1        PCB (1.5in^2, bought in groups of 10)
+                   Pin headers (very cheap on eBay)
+
+ $8.24             Total / board</code></pre>
+<h2 id="construction">Construction</h2>
+<p>Because the microcontroller is the most expensive component on the board, I soldered it last.</p>
+<p>Cut the trace on the back of the board and short other two pads to boot from FLASH.</p>
+<h2 id="toolchain">Toolchain</h2>
+<p>One of the great things about the ARM architecture is ready availability of compiler toolchains. Being on Linux, I use the <a href="https://github.com/esden/summon-arm-toolchain">summon-arm-toolchain</a> script which makes building a up-to-date ARM toolchain trivial. Namely,</p>
+<pre><code>$ git clone https://github.com/esden/summon-arm-toolchain.git
+$ cd summon-arm-toolchain
+$ ./summon-arm-toolchain</code></pre>
+<p>After the script finishes you’ll find that you have binutils, gcc, and OpenOCD available in <code>~/sat</code>. You can add these to your environment by,</p>
+<pre><code>$ PATH=~/sat/bin:$PATH
+$ export LD_LIBRARY_PATH=~/sat/lib:$LD_LIBRARY_PATH</code></pre>
+<h2 id="hello-world">Hello World</h2>
+<p>The <code>examples/blink</code> program is a good starting point to verify the board. First, build the example,</p>
+<pre><code>$ cd mkchk/examples/blink
+$ make</code></pre>
+<p>Now you have a <code>blink.bin</code> image ready to be uploaded to the mkchk. This can be done through one of the device’s two debug ports: the five-pin JTAG interface or the two-pin Serial Wire Debug (SWD) interface. The appropriate wiring configurations are shown in the tables below.</p>
+<p>To interface with the device I used a <a href="http://dangerousprototypes.com/docs/Bus_Pirate">Bus Pirate</a> in conjunction with a variant of Will Donnelley’s <a href="http://www.willdonnelly.net/blog/bus-pirate-serial-wire/"><code>pirate-swd</code></a>. While Will’s <a href="http://www.willdonnelly.net/blog/bus-pirate-serial-wire/">description</a> is helpful, details on the hardware configuration are pretty sparse.</p>
+<div style="float:right;">
+    <table>
+        <tr><th>
+Signal
+</th><th>
+Bus Pirate
+</th><th>
+mchck
+</th></tr>
+        <tr><td>
+TCK
+</td>   <td>
+PA14
+</td>  <td>
+CLK
+</td>  <td>
+P4-4
+</td></tr>
+        <tr><td>
+TMS
+</td>   <td>
+PA13
+</td>  <td>
+CS
+</td>   <td>
+P4-3
+</td></tr>
+        <tr><td>
+TDI
+</td>   <td>
+PA15
+</td>  <td>
+MOSI
+</td> <td>
+P3-1
+</td></tr>
+        <tr><td>
+TDO
+</td>   <td>
+PB3
+</td>   <td>
+MISO
+</td> <td>
+P3-2
+</td></tr>
+        <tr><td>
+NJTRSR
+</td><td>
+PB4
+</td>   <td>
+MISO
+</td> <td>
+P3-3
+</td></tr>
+        <tr><td>
+GND
+</td>   <td></td>      <td>
+GND
+</td>  <td>
+P4-2
+</td></tr>
+    </table>
+    
+<b>JTAG interface pins</b>
+</div>
+
+<div style="float:right; background-color: grey50;">
+    <table>
+      <tr><th>
+Signal
+</th><th>
+STM32 Pin
+</th><th>
+Bus Pirate
+</th><th>
+mchck
+</th></tr>
+      <tr><td>
+SWCLK
+</td> <td>
+PA14
+</td>  <td>
+CLK
+</td>  <td>
+P4-4
+</td></tr>
+      <tr><td>
+SWDIO
+</td> <td>
+PA13
+</td>  <td>
+MOSI
+</td> <td>
+P4-3
+</td></tr>
+      <tr><td>
+GND
+</td>   <td></td>      <td>
+GND
+</td>  <td>
+P4-2
+</td></tr>
+    </table>
+    
+<b>Serial Wire Debug interface pins</b>
+</div>
+
+<p>Since I use SWD (due to its lower pin count) I will detail my experiences with this below.</p>
+<p>Using the <code>flashSTM32</code> program available in my <code>pirate-swd</code> Github <a href="https://github.com/bgamari/pirate-swd">repository</a>, upload the new image,</p>
+<pre><code>$ python pirate-swd/flashSTM32.py mchck/examples/blink/blink.bin</code></pre>
+<p>If all goes well, you should see a variety of status messages, followed by a message informing you that the script has reset the device. Hopefully now you will see the LED on the device blinking.</p>
+<p>If the script dies of a protocol error, don’t worry, there are many possible issues, few of which are serious. First double-check the wiring and ensure that the device has power. If this is the correct, next look at the three bits listed in the script’s error message. These are the acknowledgement bits of the frame during which it lost synchronization with the device.</p>
+<p>If the acknowledgement bits aren’t all the same value, then you probably have noise on your clock line. This can be tested by placing your finger on the mchck’s SWD header pins. If the bus becomes more stable, this is evidence that your connection configuration is picking up RF noise from your surroundings, leading to false cycles. When using my Bus Pirate’s grabber cable, I found it necessary to place a capacitor between CLK and GND to provide better noise rejection. Without this the bus was extremely unstable.</p>
+<p>Finally, if the acknowledgement bits are all either 0 or 1, things aren’t good; it seems the chip isn’t making any attempt at communicating. Double check your soldering, the orientation of the chip, and if all else fails try replacing it.</p>
+      </section>
+    </div>
+
+    <footer id="footer">
+      <span>Generated by <a href="http://jaspervdj.be/hakyll/index.html">Hakyll</a>.</span>
+    </footer>
+  </body>
+</html>
+

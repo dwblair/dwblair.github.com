@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>
+    <title>dwblair.github.com - Installing OpenMM and GROMACS with AMBER force-field</title>
+    <link rel="stylesheet" type="text/css" href="../css/default.css"></link>
+  </head>
+  <body>
+
+    <div id="content">
+      <div id="sidebar">
+        <nav>
+          <h1>Navigation</h1>
+          <ul>
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="../projects.html">Projects</a></li>
+            <!--<li><a href="/research-agenda.html">Research agenda</a></li>
+            <li><a href="/publications.html">Publications</a></li>
+            <li><a href="/past-research.html">Past research</a></li>
+            <li><a href="/media/cv.pdf">Curriculum Vitae</a></li>-->
+          </ul>
+<!--          <h1>Related Links</h1>
+          <ul>
+            <li><a href="http://goldnerlab.physics.umass.edu/wiki/">Research group</a></li>
+            <li><a href="http://www.github.com/bgamari">Github</a></li>
+          </ul>
+        </nav>-->
+      </div>
+
+      <section id="main">
+<!---
+<div style="float: right; padding: 2em;">
+  <img src="/media/experiments.jpg" style="width: 150px;"/>
+</div>
+-->
+
+      <h1 id="installing-openmm-and-gromacs-with-amber-force-field">Installing OpenMM and GROMACS with AMBER force-field</h1>
+<h2 id="installing-openmm">Installing OpenMM</h2>
+<p>GROMACS relies on the OpenMM library for its CUDA support. We’ll use binaries provided by the OpenMM folks. Grab the latest <a href="https://simtk.org/project/xml/downloads.xml?group_id=161">binary package</a> for the desired architecture and unpack. Add OpenMM tree to <code>LD_LIBRARY_PATH</code>,</p>
+<pre><code>    $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/gromacs/OpenMM3.1.1-Linux64/lib</code></pre>
+<p>The binary package comes with a test in the <code>bin/</code> directory. Run it to ensure that things are working properly,</p>
+<pre><code>    $ cd bin
+    $ ./TestReferenceHarmonicBondForce 
+    Running test...
+    PASS - Test succeeded.</code></pre>
+<h2 id="installing-gromacs">Installing GROMACS</h2>
+<p>Grab latest gromacs tarball. Extract,</p>
+<pre><code>    $ cd ..
+    $ tar -zxf gromacs-4.5.4.tar.gz
+    $ cd gromacs-4.5.4</code></pre>
+<p>We’ll need a few packages,</p>
+<pre><code>    $ sudo apt-get install libxml2-dev</code></pre>
+<p>Build,</p>
+<pre><code>    $ cmake .
+    $ make
+    $ sudo make install</code></pre>
+<h2 id="installing-mdrun-gpu">Installing mdrun-gpu</h2>
+<p>First clean out the CPU build,</p>
+<pre><code>    $ make clean
+    $ rm CMakeCache.txt</code></pre>
+<p>Set <code>OPENMM_ROOT_DIR</code> and configure GROMACS to compile against OpenMM. Unfortunately, as of CUDA 4.0 <code>nvcc</code> doesn’t like gcc 4.5 and above. Therefore, we’ll need override the compiler version used. It would be nice if <code>nvcc</code> would allow one to directly specify the compiler executables used. Unfortunately, this is not possible; one can only specify the binary directory, using the <code>--compiler-bindir</code> option. We’ll create a directory with the gcc 4.4 executables,</p>
+<pre><code>    $ sudo apt-get install gcc-4.4 g++-4.4
+    $ sudo mkdir /usr/local/bin/gcc4.4
+    $ sudo ln -s /usr/bin/gcc-4.4 /usr/local/bin/gcc4.4/gcc
+    $ sudo ln -s /usr/bin/g++-4.4 /usr/local/bin/gcc4.4/g++</code></pre>
+<p>As seen <a href="http://www.alsvartr.de/?p=848">here</a>, the <code>cmake</code> build system allows you to pass arbitrary options to <code>nvcc</code>; We take advantage of this when building the CUDA binaries to specify our host compiler version. Also, when <code>cmake</code> chooses its <code>CMAKE_{C,CXX}_FLAGS</code> it is using gcc 4.5. Unfortunately, gcc 4.4 doesn’t recognize all of the options that 4.5 does, so we disable propagation of host flags to nvcc’s host compiler,</p>
+<pre><code>    $ export OPENMM_ROOT_DIR=~/gromacs/OpenMM3.1.1-Linux64
+    $ cmake -DGMX_OPENMM=ON -DCUDA_NVCC_FLAGS=&quot;--compiler-bindir;/usr/local/bin/gcc4.4&quot; -DCUDA_PROPAGATE_HOST_FLAGS=OFF
+    $ make mdrun
+    $ make install-mdrun</code></pre>
+<h2 id="finish">Finish</h2>
+<p>Add installation path to <code>PATH</code>,</p>
+<pre><code>    $ export PATH=$PATH:/usr/local/gromacs/bin</code></pre>
+<p>Prepare a <a href="http://www.csc.fi/english/research/sciences/chemistry/gmx-files/simple_gromacs_run/">simple test</a>,</p>
+<pre><code>    $ mkdir hi
+    $ wget http://www.csc.fi/english/research/sciences/chemistry/gmx-files/sample-input.tar
+    $ tar -xf sample-input.tar
+    $ grompp</code></pre>
+<p>Try the CPU code,</p>
+<pre><code>    $ mdrun</code></pre>
+<p>Try the GPU code,</p>
+<pre><code>    $ mdrun-gpu</code></pre>
+
+
+      </section>
+    </div>
+
+    <footer id="footer">
+      <span>Generated by <a href="http://jaspervdj.be/hakyll/index.html">Hakyll</a>.</span>
+    </footer>
+  </body>
+</html>
+

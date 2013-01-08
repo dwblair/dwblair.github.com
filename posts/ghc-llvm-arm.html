@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>
+    <title>bgamari.github.com - Installing LLVM and GHC on ARM</title>
+    <link rel="stylesheet" type="text/css" href="../css/default.css"></link>
+  </head>
+  <body>
+    <div id="content">
+      <div id="sidebar">
+        <nav>
+          <h1>Navigation</h1>
+          <ul>
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="../posts.html">Notes</a></li>
+            <!--<li><a href="/research-agenda.html">Research agenda</a></li>
+            <li><a href="/publications.html">Publications</a></li>
+            <li><a href="/past-research.html">Past research</a></li>
+            <li><a href="/media/cv.pdf">Curriculum Vitae</a></li>-->
+          </ul>
+<!--          <h1>Related Links</h1>
+          <ul>
+            <li><a href="http://goldnerlab.physics.umass.edu/wiki/">Research group</a></li>
+            <li><a href="http://www.github.com/bgamari">Github</a></li>
+          </ul>
+        </nav>-->
+      </div>
+
+      <section id="main">
+      <h1 id="installing-llvm-and-ghc-on-arm">Installing LLVM and GHC on ARM</h1>
+<p>Recently GHC’s LLVM backend gained <a href="http://hackage.haskell.org/trac/ghc/wiki/Building/ARMLinuxGnuEABI">registerized build support for ARM</a>. This could result in as much as a doubling of performance on ARM, meaning Haskell might finally be a first-class citizen on this wonderful architecture. If you are as excited about this as me, you’ll want to try it out. This is what I did.</p>
+<p>This was done on a BeagleBoard XM running <a href="http://www.linaro.org/">Linaro’s Ubuntu Natty</a> distribution. Be warned that both LLVM and GHC’s builds can require large amounts of memory at times. This can be very taxing on the system and can be quite slow. Swap was necessary at some points. Be prepared to wait the better part of a day as the build proceeds.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>We’ll first need a few packages,</p>
+<pre><code>    $ sudo apt-get install build-essential groff happy alex</code></pre>
+<p>Since LLVM and GHC builds can be quite large, I’m going to be doing everything in <code>/mnt/data/ghc</code>,</p>
+<pre><code>    $ GHCROOT=/mnt/data/ghc</code></pre>
+<h2 id="llvm">LLVM</h2>
+<p>First fetching LLVM,</p>
+<pre><code>    $ cd $GHCROOT
+    $ git clone http://llvm.org/git/llvm.git
+    $ cd llvm</code></pre>
+<p>If you want a C/C++ compiler out of the deal as well, you can clone <code>clang</code> into <code>tools/</code>. Note that <code>clang</code> seems to be even worse than LLVM itself in terms of demand on the system. While my BeagleBoard XM (512MB RAM) made it through most of the build, it ultimately ran out of memory while linking the <code>clang</code> executable. If you need a C compiler, you should consider following the LLVM cross-compiling instructions also posted here unless you have a large amount of memory and lots of time.</p>
+<pre><code>    $ cd tools
+    $ git clone http://llvm.org/git/clang.git
+    $ cd ..</code></pre>
+<p>Additionally, GHC requires a patch adding its calling convention to LLVM. The patch will require a bit of minor forward porting,</p>
+<pre><code>    $ wget http://www.gardas.roznovan.cz/llvm/llvm-2011-07-12.patch
+    $ cd llvm
+    $ patch -p1 &lt; ../llvm-2011-07-12.patch</code></pre>
+<p>Building is straightforward,</p>
+<pre><code>    $ ./configure --prefix=$GHCROOT/usr
+    $ make
+    $ sudo make install</code></pre>
+<p>It’s never a bad idea to run <code>make check</code> as well. In my case (commit <code>1c36ba50ac7fa2c3e531b3f48407fb2eee93e5ed</code>), this resulted in 12 unexpected errors,</p>
+<pre><code>    ********************
+    Testing Time: 2886.24s
+    ********************
+    Failing Tests (12):
+        LLVM :: CodeGen/X86/2009-06-05-VariableIndexInsert.ll
+        LLVM :: CodeGen/X86/tail-call-got.ll
+        LLVM :: ExecutionEngine/2002-12-16-ArgTest.ll
+        LLVM :: ExecutionEngine/test-fp.ll
+        LLVM-Unit :: ExecutionEngine/JIT/Debug+Asserts/JITTests/JIT.GlobalInFunction
+        LLVM-Unit :: ExecutionEngine/JIT/Debug+Asserts/JITTests/JITTest.AvailableExternallyGlobalIsntEmitted
+        LLVM-Unit :: ExecutionEngine/JIT/Debug+Asserts/JITTests/JITTest.EscapedLazyStubStillCallable
+        LLVM-Unit :: ExecutionEngine/JIT/Debug+Asserts/JITTests/JITTest.FunctionPointersOutliveTheirCreator
+        LLVM-Unit :: ExecutionEngine/JIT/Debug+Asserts/JITTests/LazyLoadedJITTest.MaterializableAvailableExternallyFunctionIsntCompiled
+        LLVM-Unit :: ExecutionEngine/JIT/Debug+Asserts/JITTests/MultiJitTest.EagerMode
+        LLVM-Unit :: ExecutionEngine/JIT/Debug+Asserts/JITTests/MultiJitTest.JitPool
+        LLVM-Unit :: ExecutionEngine/JIT/Debug+Asserts/JITTests/MultiJitTest.LazyMode
+
+      Expected Passes    : 5508
+      Expected Failures  : 70
+      Unsupported Tests  : 28
+      Unexpected Failures: 12</code></pre>
+<h3 id="an-aside-libc">An aside: libc++</h3>
+<p>I’ve started using <code>clang</code> as my primary compiler on my ARM box due to its speed and very modest memory requirements while compiling highly templated C++. Unfortunately, it doesn’t seem particularly happy using GCC’s libstdc++. Thankfully, the LLVM project has also produced its own new C++ standard library implementation, <a href="http://libcxx.llvm.org/"><code>libc++</code></a>. Building the library is quite trivial,</p>
+<pre><code>    $ cd $GHCROOT
+    $ git clone http://llvm.org/git/libcxx.git
+    $ cd libcxx/lib
+    $ ./buildit</code></pre>
+<p>Installation is quite straightforward,</p>
+<pre><code>    $ sudo ln -sf $GHCROOT/libcxx/lib/libc++.so.1.0 /usr/lib/libc++.so.1.0
+    $ sudo ln -sf libc++.so.1.0 /usr/lib/libc++.so.1
+    $ sudo ln -sf libc++.so.1 /usr/lib/libc++.so
+    $ sudo ln -sf $GHCROOT/libcxx/include /usr/include/c++/v1</code></pre>
+<p>Of course, we need to test it before use,</p>
+<pre><code>    $ cd ../test
+    $ ./testit</code></pre>
+<p>To use <code>libc++</code> with <code>clang</code>, simply say the magic word,</p>
+<pre><code>    $ clang++ -stdlib=libc++ test.cpp</code></pre>
+<h2 id="ghc">GHC</h2>
+<p>First we’ll fetch a few of the <a href="http://hackage.haskell.org/trac/ghc/wiki/Building/Preparation/Linux">prerequisites</a> for building GHC,</p>
+<pre><code>    $ sudo apt-get install happy alex</code></pre>
+<p>Of course, we’ll also need our new LLVM build in <code>PATH</code>,</p>
+<pre><code>    $ PATH=$GHCROOT/root/bin:$PATH</code></pre>
+<p>Fetching GHC and beginning the bootstrap process,</p>
+<pre><code>    $ cd $GHCROOT
+    $ git clone http://darcs.haskell.org/ghc.git
+    $ cd ghc
+    $ ./sync-all --no-dph get
+    $ ./boot</code></pre>
+<p>It is important to note that by default this will build the <code>master</code> branch. This is where the bleeding edge of GHC’s development takes place. For a slightly more conservative build, one might consider building the next release branch (e.g. <code>ghc-7.4</code> at time of writing; depending upon timing this may or may not be more stable than <code>master</code>). Either way, it is critically important to ensure that the <code>ghc</code> repository and those of the stage 1 libraries checked out by <code>sync-all</code> are on the same branch. Thankfully, <code>sync-all</code> will take care of this for you. For instance, to build the <code>ghc-7.4</code> branch,</p>
+<pre><code>$ ./sync-all checkout ghc-7.4</code></pre>
+<p>Note that due to (bug #5105)[http://hackage.haskell.org/trac/ghc/ticket/5105] we have disabled Data Parallel Haskell.</p>
+<p>Like many compilers, GHC’s build is a multi-stage process. First, a stage 1 compiler will be built using the stage 0 compiler already installed on the system (e.g. the <code>ghc6</code> debian package). After this, a stage 2 compiler will be built using this stage 1 compiler. The stage 2 compiler is the end result of the build.</p>
+<p>The build requires a small bit of configuration,</p>
+<pre><code>    $ cp mk/build.mk.sample mk/build.mk
+    $ edit mk/build.mk</code></pre>
+<p>Now edit <code>mk/config.mk</code>, I chose the <code>quick</code> build flavor. We need to adjust the build method to account for the fact that the stage 0 compiler we will be using does not have a native code generator (since none was available in the 6.12 series). In lieu of the native code generator, we will tell GHC to compile the stage 1 compile into C, which will then be compiled to machine code by <code>gcc</code>. To accomplish this, modify the following values,</p>
+<ul>
+<li><code>GhcStage1HcOpts</code> from <code>-fasm</code> to <code>-fvia-C</code></li>
+<li><code>GhcStage2HcOpts</code> from <code>-fasm</code> to <code>-fllvm</code></li>
+<li><code>SRC_HC_OPTS</code> remove <code>-fasm</code> (not quite sure what this should be but this works)</li>
+</ul>
+<p>Additionally, if you are planning on hacking on the tree, you may want to follow some of the recommendations at <a href="http://hackage.haskell.org/trac/ghc/wiki/Building/Using"><code class="url">http://hackage.haskell.org/trac/ghc/wiki/Building/Using</code></a> to speed up the build process. The build then proceeds as usual,</p>
+<pre><code>    $ ./configure --prefix=$GHCROOT/usr
+    $ make
+    $ sudo make install</code></pre>
+<h2 id="test">Test</h2>
+<p>As with any piece of software under development, it is always a good idea to test,</p>
+<pre><code>    $ ./sync-all --testsuite get
+    $ make test</code></pre>
+<h2 id="enjoy">Enjoy</h2>
+<p>Enjoy your shiny new compiler,</p>
+<pre><code>    $ PATH=$GHCROOT/bin:$PATH
+    $ LD_LIBRARY_PATH=$GHCROOT/lib:$LD_LIBRARY_PATH
+    $ ghc --info</code></pre>
+<h2 id="updating">Updating</h2>
+<p>To update,</p>
+<pre><code>    $ cd $GHCROOT/ghc
+    $ ./sync-all --no-dph pull</code></pre>
+<p>Make sure your previously built compiler is not in <code>$PATH</code> or else <code>configure</code> will complain. You’ll still want to make sure that LLVM is in <code>$PATH</code> however. We’ll just add the build directory to accomplish this,</p>
+<pre><code>    $ PATH=$GHCROOT/llvm/Debug+Asserts/bin:$PATH
+    $ make</code></pre>
+<h2 id="cleaning">Cleaning</h2>
+<p>In the unfortunate event that your build tree is somehow put into a funky state, you’ll need to clean it,</p>
+<pre><code>    $ make clean</code></pre>
+<p>However, if one of the phases hasn’t been completed the build system will try to finish building it before cleaning. I have yet to figure out how to work around this.</p>
+      </section>
+    </div>
+
+    <footer id="footer">
+      <span>Generated by <a href="http://jaspervdj.be/hakyll/index.html">Hakyll</a>.</span>
+    </footer>
+  </body>
+</html>
+
