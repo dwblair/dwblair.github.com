@@ -11,6 +11,7 @@
     -->
     <script type="text/processing" data-processing-target="targetcanvas">
 
+
 int xspacing = 4;   // How far apart should each horizontal location be spaced
 int w;              // Width of entire wave
 
@@ -25,8 +26,10 @@ float archiveSizeInitially=200;
 float archiveDeadPoint=5;
 
 float recoveryPoint=3;
+float recoverY=10;
 
 HScrollbar hs1, hs2;  // Two scrollbars
+PFont myFont;
 
 void setup() {
   size(640, 360);
@@ -38,7 +41,8 @@ void setup() {
   
   hs1 = new HScrollbar(0, 40, width, 16, 16);
   hs2 = new HScrollbar(0, 100, width, 16, 16);
-  
+  myFont=createFont("FFScala",11);
+  textFont(myFont);
 }
 
 void draw() {
@@ -53,12 +57,30 @@ void draw() {
   hs1.display();
   hs2.display();
   
+  fill(255);
+  text("year of total obsolescence",10,43);
+  text("year of digitization intervention",10,103);
+  
   archiveDeadPoint=hs1.getPos()/width*20;
   recoveryPoint=hs2.getPos()/width*8;
    calcWave();
   renderWave();
   //println(hs1.getPos());
   //println(recoveryPoint);
+   fill(255);
+   text("year of total obsolescence",10,43);
+  text("year of digitization intervention",10,103);
+  text("% archive preserved:",10,163);
+   
+  //int r
+  float recoveredNum=(height-recoverY-183.)/archiveSizeInitially*(1/.87)*100.;
+  if (recoveredNum<0) {
+    recoveredNum=0;
+  }
+  String rn = nf(recoveredNum,1,1);
+  text(rn,140,163);
+  //text("%",180,150);
+  
 }
 
 
@@ -72,6 +94,7 @@ void calcWave() {
   float B=archiveSizeInitially;
   float A=2*B;
   float C=archiveDeadPoint*dx/log(2.);
+  recoverY = A+B*exp(recoveryPoint/C);
   
   for (int i = 0; i < yvalues.length; i++) {
     //yvalues[i] = sin(x)*amplitude;
@@ -85,9 +108,10 @@ void calcWave() {
     //println(recoveryPoint);
     if (x>recoveryPoint) {
       
-      float recoverY = A+B*exp(recoveryPoint/C);
-      float fR=100;
-      yvalues[i]=(recoverY-fR)*exp(-(x-recoveryPoint)/30.)+fR;
+      recoverY = A+B*exp(recoveryPoint/C);
+      float fR=150;
+      yvalues[i]=recoverY;
+      //yvalues[i]=(recoverY-fR)*exp(-(x-recoveryPoint)/30.)+fR;
       
     }
     x+=dx;
