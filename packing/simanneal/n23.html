@@ -32,14 +32,14 @@ String params[];
 int numLines;
 
 
-float scaling=.30;
+float scaling=.35;
 
 void setup() {
   
 //frameRate(10);
 //background(0);
 //fill(0,255,0);
-paramsF=loadStrings("./params10.in");
+paramsF=loadStrings("./params23.in");
 String thisLine=paramsF[1]; // the first line of the file will have the number of particles
 //text(4,width/2,height/2);
 float[] params=float(split(thisLine,','));
@@ -56,7 +56,7 @@ size(inL*scaling,inL*scaling+70);
 text("loading ...",width/2,height/2);
 
 //coords=loadStrings("./coords003.txt");
-coords=loadStrings("./N_10_coords_002.txt");
+coords=loadStrings("./N_23_coords_000.txt");
 
 //String coords[]=loadStrings("./coords.txt");
 numLines = coords.length;
@@ -164,7 +164,7 @@ finished=1;
 <div class="square">
 <!--<center><a href="http://donblair.org/"><img src="images/plainIsing.png" alt="test" width=180 height=180> </a></center>-->
 <center>
-<img src='./N10.png' width=210> </br> d_p=.6901 </br> </br>
+<img src='./N21.png' width=195> </br> d_p=0.76369 </br> </br>
 <canvas id="targetcanvas" style="border: 1px solid black; image-rendering: -webkit-optimize-contrast !important; " tabindex="0" width="250" height="290"></canvas></center>
 </div>
 <!--
