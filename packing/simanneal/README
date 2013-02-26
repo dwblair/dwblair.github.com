@@ -1,0 +1,4 @@
+run:
+python -m SimpleHTTPServer 8888
+in this directory; then go to browser and type:
+localhost:8888
