@@ -1,0 +1,11 @@
+---
+title: Packing Algorithms 
+---
+
+Recently, I've been working on statistical physics-y algorithms for packing objects inside of objects.  That is -- *optimally* packing objects inside of objects. In the context of 'optimal packings of circles inside a square', this means:  imagine that you're allowed to place N identicial circles however you like inside a square, as long as they don't overlap one another or extend beyond the boundary of the square; how ought you to arrange the circles so that they'll fit inside the smallest square possible?  
+
+![An optimal packing for N=5.](/images/N5.png)
+
+I'll write more about this soon; but for now, let me refer you to [another brief writeup of mine on the topic](http://dwblair.github.com/packing/simanneal/), which deals with the specifics of various algorithms for finding these optimal packings.
+
+
