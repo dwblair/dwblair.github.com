@@ -1,0 +1,9 @@
+---
+title: Bloggin' ... 
+---
+
+The advantage of blogging is: instant publication, no 'editor' who reviews your words for suitability-- what freedom!  The disadvantage of blogging is: instant publication, no 'editor' who reviews your words for suitability-- what terror! 
+
+I revamped [PVOS](http://pvos.org) a bit, in the hope that I'll lower the barrier to posting content there.  The best place for me to post technical updates would be [Public Lab](http://publiclab.org), since most of the projects I'm working on these days are inspired by those amazing folks; but some of the things I'd like to write might not exactly fit there; thus, PVOS -- or this blog, here.  Maybe I can consider this blog to be a sort of 'first pass' at writing up ideas; slightly better-digested concepts that make the cut can then end up elsewhere.
+
+ 
