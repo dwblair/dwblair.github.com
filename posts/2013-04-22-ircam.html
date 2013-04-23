@@ -23,8 +23,98 @@
             <h1>Ircam Buttons and Motors</h1>
 
             <div class="info">Posted on April 22, 2013</div>
-<img src="../images/N5.png" height="300">
+<img src="../images/raspberry.png" height="300">
+<h3 id="prepping-an-rpi-for-button-use">Prepping an RPI for button use</h3>
+<ol style="list-style-type: decimal">
+<li>install occidentalis</li>
+<li>configure settings on pi as prompted – especially ‘expand root’ and ‘locale’ and ‘timezone’</li>
+<li>sudo apt-get update (needs internet connection)</li>
+<li>sudo apt-get install python-dev 5 sudo apt-get install python-rpi.gpio</li>
+<li>note: cobbler cabling is s.t. you get identical copy of pins on both sides (easiest, anyway)</li>
+<li> install fswebcam</li>
+<li>wire up as per diagram <a href="http://learn.adafruit.com/playing-sounds-and-using-buttons-with-raspberry-pi/bread-board-setup-for-input-buttons">here</a></li>
+<li>use python code <a href="http://learn.adafruit.com/playing-sounds-and-using-buttons-with-raspberry-pi/code">here</a></li>
+</ol>
+<h3 id="ideas-re-use">Ideas re: use</h3>
+<ul>
+<li>panning during a timelapse</li>
+<li>initiate timelapse via a button (coded click sequences?)</li>
+</ul>
+<p>Code:</p>
+<pre><code>#!/usr/bin/env python
 
+from time import sleep
+import os
+import RPi.GPIO as GPIO
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(25, GPIO.IN)
+
+while True:
+    if ( GPIO.input(25)== False ):
+            #os.system('mpg321 vader.mp3 &amp;')
+            #os.system('fswebcam test.jpeg')
+            print &quot;Switch connected&quot;
+            os.system('fswebcam test.jpeg')
+    else:
+            print &quot;Switch disconnected&quot;
+    sleep(0.1);</code></pre>
+<h3 id="code-for-adding-in-servo-control-via-rpi">Code for adding in servo control via RPI</h3>
+<p>Great tutorial on adafruit <a href="http://learn.adafruit.com/adafruits-raspberry-pi-lesson-8-using-a-servo-motor/hardware">here</a>. Simply follow this tutorial for wiring things up.</p>
+<p>Info on multiple servos <a href="http://www.adafruit.com/products/815">here</a>.</p>
+<p>Code for combining button presses with camera shots and servo action:</p>
+<pre><code>#!/usr/bin/env python
+
+from time import sleep
+import os
+import RPi.GPIO as GPIO
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(25, GPIO.IN)
+
+def set(property, value):
+    try:
+        f = open('/sys/class/rpi-pwm/pwm0/' + property, 'w')
+        f.write(value)
+        f.close()	
+    except:
+        print('Error writing to: ' + property + &quot; value: &quot; + value)
+
+def setServo(angle):
+    set('servo', str(angle))
+
+	
+set(&quot;delayed&quot;, &quot;0&quot;)
+set(&quot;mode&quot;, &quot;servo&quot;)
+set(&quot;servo_max&quot;, &quot;180&quot;)
+set(&quot;active&quot;, &quot;1&quot;)
+
+delay_period = 3 
+
+def rotateSnap():
+    for angle in range(0, 180,45):
+	    setServo(angle)
+	    os.system('fswebcam test.jpeg')
+	    sleep(delay_period)
+    for angle in range(0, 180,45):
+	    setServo(180 - angle)
+	    os.system('fswebcam test.jpeg')
+	    sleep(delay_period)
+
+while True:
+    if ( GPIO.input(25)== False ):
+	    print &quot;switch connected&quot;
+	    setServo(45)
+	    sleep(1)
+	    os.system('fswebcam test.jpeg')
+	    sleep(2)
+	    setServo(90)
+	    sleep(1)
+	    os.system('fswebcam test.jpeg')
+            sleep(2)
+    else:
+	    print &quot;waiting ...&quot;        
+    sleep(0.1);</code></pre>
 <br>
 <hr>
 <div id="disqus_thread"></div>
