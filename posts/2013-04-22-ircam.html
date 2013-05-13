@@ -23,24 +23,25 @@
             <h1>Ircam Buttons and Motors</h1>
 
             <div class="info">Posted on April 22, 2013</div>
-<img src="../images/raspberry.png" height="300">
+<img src="../images/overlord.png" height="300">
 <h3 id="prepping-an-rpi-for-button-use">Prepping an RPI for button use</h3>
 <ol style="list-style-type: decimal">
-<li>install occidentalis</li>
-<li>configure settings on pi as prompted – especially ‘expand root’ and ‘locale’ and ‘timezone’</li>
-<li>sudo apt-get update (needs internet connection)</li>
-<li>sudo apt-get install python-dev 5 sudo apt-get install python-rpi.gpio</li>
-<li>note: cobbler cabling is s.t. you get identical copy of pins on both sides (easiest, anyway)</li>
-<li> install fswebcam</li>
-<li>wire up as per diagram <a href="http://learn.adafruit.com/playing-sounds-and-using-buttons-with-raspberry-pi/bread-board-setup-for-input-buttons">here</a></li>
-<li>use python code <a href="http://learn.adafruit.com/playing-sounds-and-using-buttons-with-raspberry-pi/code">here</a></li>
+<li>Downolad <a href="http://learn.adafruit.com/adafruit-raspberry-pi-educational-linux-distro/occidentalis-v0-dot-2">Occidentalis</a> image and burn it to an SD card</li>
+<li>Boot up the RPi with the SD card, and configure settings on pi as prompted – especially ‘expand root’ and ‘locale’ and ‘timezone’. This, and any of the software-update steps below, will require that the RPi is connected via ethernet.</li>
+<li>“sudo apt-get update”</li>
+<li>“sudo apt-get install python-dev”</li>
+<li>“sudo apt-get install python-rpi.gpio”</li>
+<li>“supo apt-get install fswebcam”</li>
+<li> Grab a webcam and plug it into the USB port</li>
+<li>For button action, wire up as per diagram <a href="http://learn.adafruit.com/playing-sounds-and-using-buttons-with-raspberry-pi/bread-board-setup-for-input-buttons">here</a></li>
+<li>Demo python code for using a button <a href="http://learn.adafruit.com/playing-sounds-and-using-buttons-with-raspberry-pi/code">here</a></li>
 </ol>
 <h3 id="ideas-re-use">Ideas re: use</h3>
 <ul>
 <li>panning during a timelapse</li>
 <li>initiate timelapse via a button (coded click sequences?)</li>
 </ul>
-<p>Code:</p>
+<h3 id="code-for-triggering-a-webcam-with-a-button">Code for triggering a webcam with a button:</h3>
 <pre><code>#!/usr/bin/env python
 
 from time import sleep
@@ -59,9 +60,8 @@ while True:
     else:
             print &quot;Switch disconnected&quot;
     sleep(0.1);</code></pre>
-<h3 id="code-for-adding-in-servo-control-via-rpi">Code for adding in servo control via RPI</h3>
-<p>Great tutorial on adafruit <a href="http://learn.adafruit.com/adafruits-raspberry-pi-lesson-8-using-a-servo-motor/hardware">here</a>. Simply follow this tutorial for wiring things up.</p>
-<p>Info on multiple servos <a href="http://www.adafruit.com/products/815">here</a>.</p>
+<h3 id="code-for-adding-in-servo-control">Code for adding in servo control</h3>
+<p>There’s a great tutorial on adafruit on how to wire up the RPi to control a servo motor <a href="http://learn.adafruit.com/adafruits-raspberry-pi-lesson-8-using-a-servo-motor/hardware">here</a>. And there’s info on multiple servos <a href="http://www.adafruit.com/products/815">here</a>.</p>
 <p>Code for combining button presses with camera shots and servo action:</p>
 <pre><code>#!/usr/bin/env python
 
