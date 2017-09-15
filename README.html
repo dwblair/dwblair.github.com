@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="resources/style.css">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h1 id="tspw-the-simple-pandoc-based-website">TSPW: The Simple Pandoc-based Website</h1>
+<p>This is a static website generator based on a very simple template and <a href="http://pandoc.org">pandoc</a>. It allows you write the content of your website using (almost) plain text -- more correctly said, using pandoc's markdown syntax -- and generates a static HTML5-valid website which can be deployed on a webserver. I used TSPW to create my own <a href="http://www.ceng.metu.edu.tr/~emre/">website</a>.</p>
+<h2 id="how-to-use">How to use</h2>
+<p>To use TSPW, follow these steps:</p>
+<ol type="1">
+<li>Make sure you have <a href="http://pandoc.org">pandoc</a> installed.</li>
+<li>Download/clone the repository (i.e. <code>git clone https://github.com/eakbas/TSPW.git</code>),<br />
+</li>
+<li>Create the content of your website by editing the markdown (<code>*.md</code>) files,</li>
+<li>Run <code>make</code>.</li>
+<li>A <code>build/</code> directory will be created automatically for you. You can deploy (i.e. copy) the contents of this directory to your webserver, typically under <code>public_html/</code> in your home directory.</li>
+</ol>
+<p>If you skip the second step above, then you will get <a href="http://www.ceng.metu.edu.tr/~emre/TSPW">this dummy website</a>.</p>
+<h2 id="why-create-yet-another-static-site-generator">Why create yet another static-site-generator?</h2>
+<p>There are many static site generators, e.g. <a href="https://jekyllrb.com/">Jekyll</a>, <a href="http://jaspervdj.be/hakyll/">Hakyll</a>, <a href="http://blog.getpelican.com/">pelican</a> and more. And all of them are great, much more capable than TSPW. However, they are primarily intended for creating blog websites, and therefore, complicated to setup and use for a simple personal academic website. For this reason, I wrote this simple generator.</p>
+<p>Why not directly write HTML code? Simply because <a href="https://daringfireball.net/projects/markdown/syntax">markdown syntax</a> beats HTML syntax and thanks to powerful markdown compilers such as <a href="http://pandoc.org">pandoc</a>, it is possible to generate full websites from markdown files. It is much easier to create content using markdown than using HTML.</p>
+<p>Please <a href="http://www.ceng.metu.edu.tr/~emre/">drop me a message</a> if you find TSPW useful and/or you use it in any way.</p>
+<p> </p>
+<p> </p>
+<hr />
+<p><span class="footer"><em>Last updated by <a href="https://twitter.com/donwblair">Don Blair</a> on Sep 15, 2017. Created using <a href="https://github.com/eakbas/TSPW">TSPW</a> and <a href="http://pandoc.org/">pandoc</a>.</em></span></p>
+</body>
+</html>
